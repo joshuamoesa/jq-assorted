@@ -1,64 +1,59 @@
 #!/bin/bash
+#
+# Extract meta information from Docker and yml files and create an item in DynamoDB.
 
 CURPWD=$(pwd)
-VERSION=$(cat version-{{_comp.name}}/version)
 
-cd code-{{_comp.name}}
+#cd code-esb-ces-led-trackingevent
 
-if [ -f Dockerfile ]; then
+VERSION=1.0.0
+TIMESTAMP=`date +"%Y%m%d%H%M%S"`
+DOCKERFILE="Dockerfile"
+COMPONENTYML="esb-ces-led-trackingevent.yml"
+PLUGINS=""
+TEMPLATES=""
+SHAREDMODULES=""
+
+if [ -f $DOCKERFILE ]; then
     BASEIMAGE=$(grep 'FROM.*component' Dockerfile | sed -E 's/.*(esb-bwcebase.*) as component/\1/' | sed 's/\r$//')
 else
     BASEIMAGE="N/A"
 fi
-if [ -f {{_comp.name}}.yml ]; then
-    plugin_length=$(cat {{_comp.name}}.yml | yq -r ' .SharedResources | length')
+
+if [ -f $COMPONENTYML ]; then
+    plugin_length=$(cat $COMPONENTYML | yq -r ' .SharedResources | length')
     if (( $plugin_length > 0 )); then
-        PLUGINS=$(cat {{_comp.name}}.yml | yq -r '.SharedResources | to_entries | .[] | select (.value == true) | .key')
+        PLUGINS=$(cat $COMPONENTYML | yq -r '.SharedResources | to_entries | .[] | select (.value == true) | .key')
     fi
-    template_length=$(cat {{_comp.name}}.yml | yq -r '.Component.Processes | length')
+    template_length=$(cat $COMPONENTYML | yq -r '.Component.Processes | length')
     if (( $template_length > 0 )); then
-        TEMPLATES=$(cat {{_comp.name}}.yml | yq -r '.Component.Processes | keys []')
+        TEMPLATES=$(cat $COMPONENTYML | yq -r '.Component.Processes | to_entries | map( {"S": .key} )')
+    fi
+    sharedmodules_length=$(cat $COMPONENTYML | yq -r '.Component.Processes | length')
+    if (( $sharedmodules_length > 0 )); then
+        SHAREDMODULES=$(cat $COMPONENTYML | yq -r '[.SharedModules | to_entries[] | .value = .value.Version ] | map( {"S": (.key + "_V"+ .value)} )')
     fi
 else
     TEMPLATES="N/A"
     PLUGINS="N/A"
+    SHAREDMODULES="N/A"
 fi
 
-# create JSON file with record for dynamodb
 jq -n \
-    --arg cm "{{_comp.name}}" \
+    --arg cm "esb-ces-led-trackingevent" \
     --arg vs "$VERSION" \
     --arg bi "$BASEIMAGE" \
-    '{ component: {S: $cm}, version: {S: $vs}, baseimage: {S: $bi}, templates: {L: []}, plugins: {L: []} }' > $CURPWD/input.json
+    --arg tp "$TEMPLATES" \
+    --arg pl "$PLUGINS" \
+    --arg sm "$SHAREDMODULES" \
+    --arg dt "$TIMESTAMP" \
+    '{ component: {S: $cm}, version: {S: $vs}, baseimage: {S: $bi}, templates: {L: $tp}, plugins: {L: $pl}, sharedmodules: {L: $sm}, timestamp: {S: $dt}}' > $CURPWD/input.json
 
-
-# check templates used in yml and add item per template to list in json file
-if [[ $TEMPLATES ]]; then
-    for template in $TEMPLATES
-    do
-        jq --arg v "$template" '.templates.L[.templates.L | length] |= . + {"S": $v}'  $CURPWD/input.json > $CURPWD/tmp.json
-        mv $CURPWD/tmp.json $CURPWD/input.json
-    done
-else
-    jq '.templates.L[.templates.L | length] |= . + {"S": "N/A"}' $CURPWD/input.json > $CURPWD/tmp.json
-    mv $CURPWD/tmp.json $CURPWD/input.json
-fi
-
-# check plugins used in yml and add item per plugin to list in json file
-if [[ $PLUGINS ]]; then
-    for plugin in $PLUGINS
-    do
-        jq --arg v "$plugin" '.plugins.L[.plugins.L | length] |= . + {"S": $v}' $CURPWD/input.json > $CURPWD/tmp.json
-        mv $CURPWD/tmp.json $CURPWD/input.json
-    done
-else
-    jq '.plugins.L[.plugins.L | length] |= . + {"S": "N/A"}' $CURPWD/input.json > $CURPWD/tmp.json
-    mv $CURPWD/tmp.json $CURPWD/input.json
-fi
+exit 1
 
 # Getting creds (TST)
 echo "Assuming role to TST env"
-tmp_role=$(echo cc-flow-{{_comp.name}}-acc | cut -c1-60)
+tmp_role=$(echo cc-flow-esb-ces-led-trackingevent-acc | cut -c1-60)
 export temp_credentials=$(aws sts assume-role --role-arn {{ aws_test_env_role }} --role-session-name $tmp_role)
 export AWS_ACCESS_KEY_ID=$(echo ${temp_credentials} | jq -r '.Credentials.AccessKeyId')
 export AWS_SESSION_TOKEN=$(echo ${temp_credentials} | jq -r '.Credentials.SessionToken')
@@ -92,7 +87,7 @@ fi
 echo "Assuming role to SERVICES env"
 unset AWS_ACCESS_KEY_ID
 unset AWS_SESSION_TOKEN
-tmp_role=$(echo cc-flow-{{_comp.name}}-acc | cut -c1-60)
+tmp_role=$(echo cc-flow-esb-ces-led-trackingevent-acc | cut -c1-60)
 export temp_credentials=$(aws sts assume-role --role-arn {{ aws_services_env_role }} --role-session-name $tmp_role)
 export AWS_ACCESS_KEY_ID=$(echo ${temp_credentials} | jq -r '.Credentials.AccessKeyId')
 export AWS_SESSION_TOKEN=$(echo ${temp_credentials} | jq -r '.Credentials.SessionToken')

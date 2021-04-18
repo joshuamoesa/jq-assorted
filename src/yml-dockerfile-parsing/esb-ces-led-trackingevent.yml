@@ -1,0 +1,45 @@
+GeneratorSettings:
+  OutputDirectory: "/mnt/c/tmp/generated/output"        # Project will be created here: the extacted output and rendered output.
+  GitOutputDirectory: "/mnt/c/tmp/generated/git"        # Not used (yet)
+  TemplateDirectory: "/mnt/c/work/postNL/Generator/componentgenerator_templates"  # Point this to the local up to date master branch that contains all templates
+Project:
+  TemplateName: default_project_V1.2.5
+  UseKijkkat: true
+  KijkkatActivities:
+      - - interface.SubscribeToEsbFtlMessageStore_processTrackingevent.LogEnd
+        - countReceived
+      - - interface.SubscribeToEsbFtlMessageStore_processTrackingevent.LogIgnore
+        - countFiltered
+SharedModules:
+  Logging:
+    Version: 2.0.1
+  Messagebroker:
+    Version: 1.0.6
+  Messagestore:
+    Version: 1.8.4
+  Monitoring:
+    Version: 1.2.0
+SharedResources:                                        
+    mq: false
+    amazons3: false
+    salesforce: false
+    sftp: false
+    bwlx: false
+    kafka: false
+    sqs: true
+    jms: false
+Component:
+  FullName: esb-ces-led-trackingevent
+  Type: ces
+  Application: led
+  MessageType: TrackingEvent
+  Timezone: "Europe/Amsterdam"
+  Version: 1.0.0
+  Functionaldomain: CBS
+  BuildEarVersion: 2.4.0
+  ImageBase: "esb-bwcebase-all:2.5.4.4"
+  Processes:
+    SubscribeToEsbFtlMessageStore_V2.1.0: {}
+    ParseMap_V2.0.0: {}
+    SQSRequest_V1.1.0: {}
+    ActivatorProcess_V1.0.0: {}

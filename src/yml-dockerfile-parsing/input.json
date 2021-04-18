@@ -1,0 +1,23 @@
+{
+  "component": {
+    "S": "esb-ces-led-trackingevent"
+  },
+  "version": {
+    "S": "1.0.0"
+  },
+  "baseimage": {
+    "S": "esb-bwcebase:2.5.4.4"
+  },
+  "templates": {
+    "L": "[\n  {\n    \"S\": \"SubscribeToEsbFtlMessageStore_V2.1.0\"\n  },\n  {\n    \"S\": \"ParseMap_V2.0.0\"\n  },\n  {\n    \"S\": \"SQSRequest_V1.1.0\"\n  },\n  {\n    \"S\": \"ActivatorProcess_V1.0.0\"\n  }\n]"
+  },
+  "plugins": {
+    "L": "sqs"
+  },
+  "sharedmodules": {
+    "L": "[\n  {\n    \"S\": \"Logging_V2.0.1\"\n  },\n  {\n    \"S\": \"Messagebroker_V1.0.6\"\n  },\n  {\n    \"S\": \"Messagestore_V1.8.4\"\n  },\n  {\n    \"S\": \"Monitoring_V1.2.0\"\n  }\n]"
+  },
+  "timestamp": {
+    "S": "20210416174606"
+  }
+}
