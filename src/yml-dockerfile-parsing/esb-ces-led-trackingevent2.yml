@@ -26,8 +26,8 @@ SharedResources:
     sftp: false
     bwlx: false
     kafka: false
-    sqs: false
-    jms: true
+    sqs: true
+    jms: false
 Component:
   FullName: esb-ces-led-trackingevent
   Type: ces
